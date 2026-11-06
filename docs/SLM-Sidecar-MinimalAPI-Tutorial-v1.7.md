@@ -16,7 +16,7 @@
 | 1.5 | 2026-11-06 | Peter Morgan | Phase 8 CLI path now applies the same site hardening as `main.bicep` (`httpsOnly`, `minTlsVersion` 1.2, `ftpsState` Disabled), with a Phase 9 check and a Phase 8 trap. Endpoint now handles client disconnects (`OperationCanceledException` when the request is aborted): logged at Information level and excluded from normal server-error handling; added to the status code contract, Phase 3 traps and Phase 10 checklist. Plan name aligned across paths: Phase 6 sets `PLAN=asp-$APP` to match the Bicep naming (`asp-${appName}`). |
 | 1.6 | 2026-11-07 | Peter Morgan | Corrected the Linux App Service request limit to approximately 240 seconds; changed inference to fail fast with `QueueLimit = 0`; disabled automatic inference retries; added `Retry-After` for 429 responses; clarified client-abort telemetry; made Entra ID the production authentication recommendation; expanded health-check guidance; added asynchronous processing guidance, automated testing and CI, software-supply-chain controls, model governance, and custom inference telemetry; strengthened image and dependency pinning guidance. |
 
-| 1.7 | 2026-11-07 | Peter Morgan | Corrected retry configuration, container resource API version, inference timeout policy, upstream payload validation, Health check semantics and local port exposure. Added digest resolution and build-argument propagation, exact readiness matching, explicit warm-up, shell/directory/RBAC prerequisites, locked image restore, runnable integration tests and CI, deterministic smoke tests, rollback and cleanup. Clarified API-key authentication and optional production extensions. Pin the locally selected .NET 10 SDK with `global.json` for reproducible contributor and CI toolchains. Updated `Azure.Monitor.OpenTelemetry.AspNetCore` to 1.6.0 because the former 1.4.0 dependency graph resolves vulnerable `OpenTelemetry.Api` 1.14.0. Corrected `System.Net.Http.Json` cancellation-token arguments for .NET 10 overloads, including the Phase 3 readiness probe. |
+| 1.7 | 2026-11-07 | Peter Morgan | Corrected retry configuration, container resource API version, inference timeout policy, upstream payload validation, Health check semantics and local port exposure. Added digest resolution and build-argument propagation, exact readiness matching, explicit warm-up, shell/directory/RBAC prerequisites, locked image restore, runnable integration tests and CI, deterministic smoke tests, rollback and cleanup. Clarified API-key authentication and optional production extensions. Pin the locally selected .NET 10 SDK with `global.json` for reproducible contributor and CI toolchains. Updated `Azure.Monitor.OpenTelemetry.AspNetCore` to 1.6.0 because the former 1.4.0 dependency graph resolves vulnerable `OpenTelemetry.Api` 1.14.0. Corrected `System.Net.Http.Json` cancellation-token arguments for .NET 10 overloads, including the Phase 3 readiness probe. Made Phase 4 digest discovery fail fast when registry inspection fails and clarified shared-namespace API port publishing. |
 
 ## Completion boundary and validation status
 
@@ -836,6 +836,7 @@ Properties/launchSettings.json
 This executable bootstrap resolves a real registry digest instead of inventing one. `latest` is used **only to discover a candidate**, not as the build reference. For production, substitute your organisation's approved release tag before running this block and approve the resolved digest after testing. Discovery does not constitute approval.
 
 ```bash
+set -e
 OLLAMA_TAG=latest
 OLLAMA_DIGEST=$(docker buildx imagetools inspect "ollama/ollama:$OLLAMA_TAG" \
   | awk '$1 == "Digest:" { print $2; exit }')
@@ -984,7 +985,7 @@ services:
       args:
         OLLAMA_IMAGE: ${OLLAMA_IMAGE:?Run Phase 4 digest resolution first}
     ports:
-      - "127.0.0.1:8080:8080"      # API (published on the namespace owner)
+      - "127.0.0.1:8080:8080"      # API port in the shared namespace, published on its owner
     deploy:
       resources:
         limits:

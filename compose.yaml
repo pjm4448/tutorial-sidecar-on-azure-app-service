@@ -1,0 +1,25 @@
+services:
+  ollama:
+    platform: linux/amd64
+    build:
+      context: ./sidecar
+      args:
+        OLLAMA_IMAGE: ${OLLAMA_IMAGE:?Run Phase 4 digest resolution first}
+    ports:
+      - "127.0.0.1:8080:8080"
+    deploy:
+      resources:
+        limits:
+          memory: 6g
+
+  api:
+    platform: linux/amd64
+    build: ./src
+    network_mode: "service:ollama"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      Api__Key: "local-dev-key-change-me-0123456789abcdef"
+      Ollama__BaseUrl: "http://localhost:11434"
+      Ollama__DefaultModel: "phi3:mini"
+      Ollama__AllowedModels__0: "phi3:mini"
+    depends_on: [ollama]
